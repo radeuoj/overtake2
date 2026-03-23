@@ -39,8 +39,7 @@ game_to_screen :: proc(game: ^Game, position: [2]f32) -> [2]f32 {
 update_game :: proc(game: ^Game) {
     update_player(&game.player)
 
-    game.camera = game.player.position +
-        [2]f32{PLAYER_WIDTH, PLAYER_HEIGHT} / 2
+    game.camera = game.player.position
 }
 
 draw_game :: proc(game: ^Game) {

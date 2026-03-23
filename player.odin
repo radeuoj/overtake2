@@ -1,15 +1,19 @@
 package main
 
+import "core:fmt"
+import "core:math"
 import "vendor:raylib"
 
 Player :: struct {
     position: [2]f32,
+    rotation: f32,
     texture: raylib.Texture2D,
 }
 
 PLAYER_WIDTH :: 250
 PLAYER_HEIGHT :: 500
 PLAYER_SPEED :: 10000
+PLAYER_ROTATION_SPEED :: 2 * math.PI
 CAR_COUNT :: 14
 SELECTED_CAR :: 11
 
@@ -22,30 +26,35 @@ create_player :: proc() -> Player {
 
     return Player{
         position = {5000, 100},
+        rotation = 0,
         texture = texture,
     }
 }
 
 update_player :: proc(player: ^Player) {
-    move_dir: [2]f32
+    move_dir: f32
+    rotation_dir: f32
 
     if raylib.IsKeyDown(.W) {
-        move_dir.y -= 1
+        move_dir -= 1
     }
 
     if raylib.IsKeyDown(.S) {
-        move_dir.y += 1
+        move_dir += 1
     }
 
     if raylib.IsKeyDown(.A) {
-        move_dir.x -= 1
+        rotation_dir += move_dir
     }
 
     if raylib.IsKeyDown(.D) {
-        move_dir.x += 1
+        rotation_dir -= move_dir
     }
 
-    player.position += move_dir * PLAYER_SPEED * raylib.GetFrameTime()
+    player.rotation += rotation_dir * raylib.GetFrameTime() * PLAYER_ROTATION_SPEED
+    dir := [2]f32{math.cos(player.rotation + math.PI / 2), math.sin(player.rotation + math.PI / 2)}
+    move_delta := dir * move_dir * PLAYER_SPEED
+    player.position += move_delta * raylib.GetFrameTime()
 }
 
 draw_player :: proc(game: ^Game) {
@@ -65,14 +74,14 @@ draw_player :: proc(game: ^Game) {
         height = PLAYER_HEIGHT,
     }
     
-    origin := [2]f32{0, 0}
+    origin := [2]f32{PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2}
 
     raylib.DrawTexturePro(
         game.player.texture, 
         source_rect,
         dest_rect,
         origin,
-        0,
+        math.to_degrees(game.player.rotation),
         raylib.WHITE,
     )
 }
