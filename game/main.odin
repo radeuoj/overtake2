@@ -1,4 +1,4 @@
-package main
+package game
 
 main :: proc() {
     game := create_game()

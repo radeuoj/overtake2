@@ -1,6 +1,5 @@
-package main
+package game
 
-import "core:fmt"
 import "core:math"
 import "vendor:raylib"
 
@@ -18,7 +17,7 @@ CAR_COUNT :: 14
 SELECTED_CAR :: 11
 
 create_player :: proc() -> Player {
-    @(rodata, static) PLAYER_IMAGE := #load("textures/cars.png")
+    @(rodata, static) PLAYER_IMAGE := #load("../textures/cars.png")
 
     image := raylib.LoadImageFromMemory(".jpg", raw_data(PLAYER_IMAGE), i32(len(PLAYER_IMAGE)))
     texture := raylib.LoadTextureFromImage(image)

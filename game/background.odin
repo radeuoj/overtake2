@@ -1,4 +1,4 @@
-package main
+package game
 
 import "vendor:raylib"
 
@@ -9,7 +9,7 @@ GameBackground :: struct {
 CHUNK_SIZE :: 10000
 
 create_background :: proc() -> GameBackground {
-    @(rodata, static) HIGHWAY_IMAGE := #load("textures/highway.jpg")
+    @(rodata, static) HIGHWAY_IMAGE := #load("../textures/highway.jpg")
 
     image := raylib.LoadImageFromMemory(".jpg", raw_data(HIGHWAY_IMAGE), i32(len(HIGHWAY_IMAGE)))
     texture := raylib.LoadTextureFromImage(image)
