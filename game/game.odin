@@ -6,6 +6,7 @@ Game :: struct {
     player: Player,
     camera: [2]f32,
     background: GameBackground,
+    net_con: NetConnection,
 }
 
 create_game :: proc() -> Game {
@@ -16,7 +17,12 @@ create_game :: proc() -> Game {
         player = create_player(),
         camera = [2]f32{0, 0},
         background = create_background(),
+        net_con = create_net_con(),
     }
+}
+
+delete_game :: proc(game: ^Game) {
+    delete_net_con(&game.net_con)
 }
 
 run_game :: proc(game: ^Game) {
@@ -31,18 +37,19 @@ run_game :: proc(game: ^Game) {
     raylib.CloseWindow()
 }
 
-game_to_screen :: proc(game: ^Game, position: [2]f32) -> [2]f32 {
+game_to_screen :: proc(camera: [2]f32, position: [2]f32) -> [2]f32 {
     scren_size := [2]f32{f32(raylib.GetScreenWidth()), f32(raylib.GetScreenHeight())}
-    return position - game.camera + scren_size / 2
+    return position - camera + scren_size / 2
 }
 
 update_game :: proc(game: ^Game) {
     update_player(&game.player)
-
     game.camera = game.player.position
+    update_net_con(game)
 }
 
 draw_game :: proc(game: ^Game) {
     draw_background(game)
-    draw_player(game)
+    draw_net_players(&game.net_con, game.camera)
+    draw_player(&game.player, game.camera)
 }

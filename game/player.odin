@@ -56,14 +56,14 @@ update_player :: proc(player: ^Player) {
     player.position += move_delta * raylib.GetFrameTime()
 }
 
-draw_player :: proc(game: ^Game) {
-    screen_pos := game_to_screen(game, game.player.position)
+draw_player :: proc(player: ^Player, camera: [2]f32) {
+    screen_pos := game_to_screen(camera, player.position)
 
     source_rect := raylib.Rectangle{
-        x = f32(game.player.texture.width / CAR_COUNT * SELECTED_CAR),
+        x = f32(player.texture.width / CAR_COUNT * SELECTED_CAR),
         y = 0,
-        width = f32(game.player.texture.width / CAR_COUNT),
-        height = f32(game.player.texture.height),
+        width = f32(player.texture.width / CAR_COUNT),
+        height = f32(player.texture.height),
     }
 
     dest_rect := raylib.Rectangle{
@@ -76,11 +76,11 @@ draw_player :: proc(game: ^Game) {
     origin := [2]f32{PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2}
 
     raylib.DrawTexturePro(
-        game.player.texture, 
+        player.texture, 
         source_rect,
         dest_rect,
         origin,
-        math.to_degrees(game.player.rotation),
+        math.to_degrees(player.rotation),
         raylib.WHITE,
     )
 }

@@ -23,7 +23,7 @@ create_background :: proc() -> GameBackground {
 draw_background_at :: proc(game: ^Game, chunk: [2]i32) {
     position := [2]f32{f32(chunk.x), f32(chunk.y)} * CHUNK_SIZE
 
-    screen_pos := game_to_screen(game, position)
+    screen_pos := game_to_screen(game.camera, position)
 
     source_rect := raylib.Rectangle{
         x = 0,

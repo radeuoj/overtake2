@@ -8,8 +8,11 @@ import "core:sync"
 import "core:thread"
 import "core:net"
 import "core:fmt"
+import "core:slice"
+import "../game"
 
-clients: map[net.TCP_Socket]struct{}
+next_id: i32 = 1
+clients: map[net.TCP_Socket]i32
 clients_mutex: sync.Mutex
 
 broadcast_to_all_except :: proc(except: net.TCP_Socket, buffer: []u8) {
@@ -21,12 +24,25 @@ broadcast_to_all_except :: proc(except: net.TCP_Socket, buffer: []u8) {
     sync.unlock(&clients_mutex)
 }
 
+broadcast_event_to_all_except :: proc(except: net.TCP_Socket, event: game.ClientEvent) {
+    event := event
+    buffer := slice.from_ptr(transmute(^u8)(&event), size_of(game.ClientEvent))
+    broadcast_to_all_except(except, buffer)
+}
+
 handle_con :: proc(client: net.TCP_Socket, source: net.Endpoint) {
     defer {
         net.close(client)
         sync.lock(&clients_mutex)
         delete_key(&clients, client)
         sync.unlock(&clients_mutex)
+
+        broadcast_event_to_all_except(client, game.ClientEvent {
+            type = .PLAYER_DISCONNECT,
+            player_connect = game.PlayerConnectClientEvent {
+                id = next_id,
+            },
+        })
     }
     buffer: [256]u8
 
@@ -36,9 +52,23 @@ handle_con :: proc(client: net.TCP_Socket, source: net.Endpoint) {
 
         if bytes_recv == 0 do break
 
-        msg := fmt.tprintf("%s : %s", net.endpoint_to_string(source), received)
-        fmt.print(msg)
-        broadcast_to_all_except(client, transmute([]u8)(msg))
+        event := transmute(^game.ServerEvent)(raw_data(received))
+
+        msg := fmt.tprintf("%s : %s\n", net.endpoint_to_string(source), event^)
+        // fmt.print(msg)
+        // broadcast_to_all_except(client, transmute([]u8)(msg))
+
+        sync.lock(&clients_mutex)
+        id := clients[client]
+        sync.unlock(&clients_mutex)
+        broadcast_event_to_all_except(client, game.ClientEvent {
+            type = .PLAYER_UPDATE,
+            player_update = game.PlayerUpdateClientEvent {
+                id = id,
+                position = event.player_update.position,
+                rotation = event.player_update.rotation,
+            },
+        })
 
         free_all(context.temp_allocator)
     }
@@ -55,15 +85,35 @@ main :: proc() {
     sock, _ := net.listen_tcp(endpoint)
     defer net.close(sock)
 
-    clients = make(map[net.TCP_Socket]struct{})
+    clients = make(map[net.TCP_Socket]i32)
     defer delete(clients)
 
     fmt.printfln("Listening on %s", net.endpoint_to_string(endpoint))
     for {
         client, source, _ := net.accept_tcp(sock)
         sync.lock(&clients_mutex)
-        clients[client] = struct{}{}
+
+        for _, id in clients {
+            event := game.ClientEvent {
+                type = .PLAYER_CONNECT,
+                player_connect = game.PlayerConnectClientEvent {
+                    id = id,
+                },
+            }
+            buffer := slice.from_ptr(transmute(^u8)(&event), size_of(game.ClientEvent))
+            net.send_tcp(client, buffer)
+        } 
+        clients[client] = next_id
+
         sync.unlock(&clients_mutex)
+        broadcast_event_to_all_except(client, game.ClientEvent {
+            type = .PLAYER_CONNECT,
+            player_connect = game.PlayerConnectClientEvent {
+                id = next_id,
+            },
+        })
+        next_id += 1
+
         thread.create_and_start_with_poly_data2(client, source, handle_con)
     }
 }
