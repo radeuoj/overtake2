@@ -1,6 +1,6 @@
 package game
 
-import "vendor:raylib"
+import rl "vendor:raylib"
 
 Game :: struct {
     player: Player,
@@ -10,8 +10,8 @@ Game :: struct {
 }
 
 create_game :: proc() -> Game {
-    raylib.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-    raylib.InitWindow(1600, 900, "Overtake 2")
+    rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
+    rl.InitWindow(1600, 900, "Overtake 2")
 
     return Game{
         player = create_player(),
@@ -26,19 +26,19 @@ delete_game :: proc(game: ^Game) {
 }
 
 run_game :: proc(game: ^Game) {
-    for !raylib.WindowShouldClose() {
+    for !rl.WindowShouldClose() {
         update_game(game)
-        raylib.BeginDrawing()
-        raylib.ClearBackground({160, 200, 255, 255})
+        rl.BeginDrawing()
+        rl.ClearBackground({160, 200, 255, 255})
         draw_game(game)
-        raylib.EndDrawing()
+        rl.EndDrawing()
     }
 
-    raylib.CloseWindow()
+    rl.CloseWindow()
 }
 
 game_to_screen :: proc(camera: [2]f32, position: [2]f32) -> [2]f32 {
-    scren_size := [2]f32{f32(raylib.GetScreenWidth()), f32(raylib.GetScreenHeight())}
+    scren_size := [2]f32{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
     return position - camera + scren_size / 2
 }
 

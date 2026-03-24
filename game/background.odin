@@ -1,9 +1,9 @@
 package game
 
-import "vendor:raylib"
+import rl "vendor:raylib"
 
 GameBackground :: struct {
-    texture: raylib.Texture2D,
+    texture: rl.Texture2D,
 }
 
 CHUNK_SIZE :: 10000
@@ -11,9 +11,9 @@ CHUNK_SIZE :: 10000
 create_background :: proc() -> GameBackground {
     @(rodata, static) HIGHWAY_IMAGE := #load("../textures/highway.jpg")
 
-    image := raylib.LoadImageFromMemory(".jpg", raw_data(HIGHWAY_IMAGE), i32(len(HIGHWAY_IMAGE)))
-    texture := raylib.LoadTextureFromImage(image)
-    raylib.UnloadImage(image)
+    image := rl.LoadImageFromMemory(".jpg", raw_data(HIGHWAY_IMAGE), i32(len(HIGHWAY_IMAGE)))
+    texture := rl.LoadTextureFromImage(image)
+    rl.UnloadImage(image)
 
     return GameBackground{
         texture,
@@ -25,14 +25,14 @@ draw_background_at :: proc(game: ^Game, chunk: [2]i32) {
 
     screen_pos := game_to_screen(game.camera, position)
 
-    source_rect := raylib.Rectangle{
+    source_rect := rl.Rectangle{
         x = 0,
         y = 0,
         width = f32(game.background.texture.width),
         height = f32(game.background.texture.height),
     }
 
-    dest_rect := raylib.Rectangle{
+    dest_rect := rl.Rectangle{
         x = screen_pos.x,
         y = screen_pos.y,
         width = CHUNK_SIZE,
@@ -41,13 +41,13 @@ draw_background_at :: proc(game: ^Game, chunk: [2]i32) {
     
     origin := [2]f32{0, 0}
 
-    raylib.DrawTexturePro(
+    rl.DrawTexturePro(
         game.background.texture, 
         source_rect,
         dest_rect,
         origin,
         0,
-        raylib.WHITE,
+        rl.WHITE,
     )
 }
 
