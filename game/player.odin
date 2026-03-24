@@ -9,9 +9,9 @@ Player :: struct {
     texture: rl.Texture2D,
 }
 
-PLAYER_WIDTH :: 250
-PLAYER_HEIGHT :: 500
-PLAYER_SPEED :: 10000
+PLAYER_WIDTH :: 120
+PLAYER_HEIGHT :: 240
+PLAYER_SPEED :: 5000
 PLAYER_ROTATION_SPEED :: 2 * math.PI
 CAR_COUNT :: 14
 SELECTED_CAR :: 11
@@ -24,7 +24,7 @@ create_player :: proc() -> Player {
     rl.UnloadImage(image)
 
     return Player{
-        position = {5000, 100},
+        position = {2500, 100},
         rotation = 0,
         texture = texture,
     }

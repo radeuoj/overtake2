@@ -1,6 +1,8 @@
 package game
 
 import rl "vendor:raylib"
+import mu "vendor:microui"
+import "../rlmu"
 
 Game :: struct {
     player: Player,
@@ -10,8 +12,10 @@ Game :: struct {
 }
 
 create_game :: proc() -> Game {
-    rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
+    rl.SetConfigFlags({ .WINDOW_RESIZABLE, .VSYNC_HINT, .WINDOW_HIGHDPI })
+    rl.SetTraceLogLevel(.WARNING)
     rl.InitWindow(1600, 900, "Overtake 2")
+    rlmu.init()
 
     return Game{
         player = create_player(),
@@ -23,18 +27,23 @@ create_game :: proc() -> Game {
 
 delete_game :: proc(game: ^Game) {
     delete_net_con(&game.net_con)
+    rlmu.destroy()
+    rl.CloseWindow()
 }
 
 run_game :: proc(game: ^Game) {
     for !rl.WindowShouldClose() {
+        defer free_all(context.temp_allocator)
+
         update_game(game)
+
         rl.BeginDrawing()
+        defer rl.EndDrawing()
+
         rl.ClearBackground({160, 200, 255, 255})
         draw_game(game)
-        rl.EndDrawing()
+        draw_mu(game)
     }
-
-    rl.CloseWindow()
 }
 
 game_to_screen :: proc(camera: [2]f32, position: [2]f32) -> [2]f32 {
@@ -52,4 +61,15 @@ draw_game :: proc(game: ^Game) {
     draw_background(game)
     draw_net_players(&game.net_con, game.camera)
     draw_player(&game.player, game.camera)
+}
+
+draw_mu :: proc(game: ^Game) {
+    ctx := rlmu.begin()
+    defer rlmu.end()
+
+    if mu.begin_window(ctx, "overtake2", { 100, 100, 100, 100 }) {
+        defer mu.end_window(ctx)
+
+        mu.label(ctx, "Hello world")
+    }
 }

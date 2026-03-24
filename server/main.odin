@@ -43,6 +43,8 @@ handle_con :: proc(client: net.TCP_Socket, source: net.Endpoint) {
                 id = next_id,
             },
         })
+        
+        free_all(context.temp_allocator)
     }
     buffer: [256]u8
 
@@ -69,8 +71,6 @@ handle_con :: proc(client: net.TCP_Socket, source: net.Endpoint) {
                 rotation = event.player_update.rotation,
             },
         })
-
-        free_all(context.temp_allocator)
     }
 }
 

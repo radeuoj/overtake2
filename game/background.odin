@@ -6,7 +6,7 @@ GameBackground :: struct {
     texture: rl.Texture2D,
 }
 
-CHUNK_SIZE :: 10000
+CHUNK_SIZE :: 5000
 
 create_background :: proc() -> GameBackground {
     @(rodata, static) HIGHWAY_IMAGE := #load("../textures/highway.jpg")
