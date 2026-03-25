@@ -51,7 +51,9 @@ send_event :: proc(client: net.TCP_Socket, event: ^game.ClientEvent) {
 }
 
 send_current_clients :: proc(client: net.TCP_Socket) {
-    for cl, id in clients_lock_and_get_store(&clients) {
+    clients_lock(&clients)
+
+    for cl, id in clients.store {
         if cl == client do continue
         event := game.create_player_connect_event(id)
         send_event(client, &event)
@@ -61,7 +63,9 @@ send_current_clients :: proc(client: net.TCP_Socket) {
 }
 
 broadcast_event :: proc(event: ^game.ClientEvent, except: net.TCP_Socket = 0) {
-    for client in clients_lock_and_get_store(&clients) {
+    clients_lock(&clients)
+
+    for client in clients.store {
         if client == except do continue
         send_event(client, event)
     }
