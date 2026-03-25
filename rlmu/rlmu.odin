@@ -242,7 +242,8 @@ forward_keyboard_input :: proc(state : ^RLMU_State) {
     }
 
     for key in KeyMappings {
-        if rl.IsKeyPressed(key.rl) {
+        if key.mu == .BACKSPACE && rl.IsKeyPressedRepeat(key.rl) ||
+            rl.IsKeyPressed(key.rl) {
             mu.input_key_down(&state.ctx, key.mu)
         }
         else if rl.IsKeyReleased(key.rl) {
