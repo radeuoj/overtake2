@@ -1,5 +1,7 @@
 package game
 
+import "core:net"
+import "core:fmt"
 import rl "vendor:raylib"
 import mu "vendor:microui"
 import "../rlmu"
@@ -9,6 +11,7 @@ Game :: struct {
     camera: [2]f32,
     background: GameBackground,
     net_con: NetConnection,
+    input_locked: bool,
 }
 
 create_game :: proc() -> Game {
@@ -22,6 +25,7 @@ create_game :: proc() -> Game {
         camera = [2]f32{0, 0},
         background = create_background(),
         net_con = create_net_con(),
+        input_locked = false,
     }
 }
 
@@ -52,7 +56,7 @@ game_to_screen :: proc(camera: [2]f32, position: [2]f32) -> [2]f32 {
 }
 
 update_game :: proc(game: ^Game) {
-    update_player(&game.player)
+    if !game.input_locked do update_player(&game.player)
     game.camera = game.player.position
     update_net_con(game)
 }
@@ -67,9 +71,44 @@ draw_mu :: proc(game: ^Game) {
     ctx := rlmu.begin()
     defer rlmu.end()
 
-    if mu.begin_window(ctx, "overtake2", { 100, 100, 100, 100 }) {
+    if mu.begin_window(ctx, "overtake2", { 100, 100, 300, 150 }, { .NO_CLOSE }) {
         defer mu.end_window(ctx)
-
+        
+        mu.layout_row(ctx, { -1 })
         mu.label(ctx, "Hello world")
+        
+        mu.layout_row(ctx, { 100, -1 })
+
+        @(static, rodata) default_buf := "127.0.0.1:9868"
+        @(static) buf_init := false
+        @(static) buf: [256]u8 
+        @(static) text_len: int
+
+        if !buf_init {
+            buf_init = true
+            copy(buf[:], default_buf)
+            text_len = len(default_buf)
+        }
+
+        mu.label(ctx, "Server address")
+        mu.textbox(ctx, buf[:], &text_len)
+
+        mu.layout_row(ctx, { -1 })
+        if .SUBMIT in mu.button(ctx, "Connect") {
+            connect_to_server(game, string(buf[:text_len]))
+        }
+        mu.label(ctx, fmt.tprintf("ctx.focus_id %v", ctx.focus_id))
     }
+
+    game.input_locked = ctx.focus_id != 0
+}
+
+connect_to_server :: proc(game: ^Game, addr: string) {
+    endpoint, ok := net.parse_endpoint(addr)
+    if !ok {
+        fmt.printfln("%v is an invalid address", addr)
+        return
+    }
+
+    connect_net_con(&game.net_con, endpoint)
 }
