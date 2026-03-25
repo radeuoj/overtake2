@@ -179,7 +179,7 @@ net_con_recv_task :: proc(net_con: ^NetConnection, tx: chan.Chan(ClientEvent, .S
     buffer: [512]u8
     offset := 0
 
-    for {
+    for net_con.is_connected {
         bytes_recv, err := net.recv_tcp(net_con.sock, buffer[offset:])
         if err != nil {
             fmt.printfln("net.recv_tcp error %v", err)
