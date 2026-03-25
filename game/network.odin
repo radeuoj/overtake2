@@ -48,6 +48,24 @@ PlayerConnectClientEvent :: struct {
     id: i32,
 }
 
+create_player_connect_event :: proc(id: i32) -> ClientEvent {
+    return ClientEvent {
+        type = .PLAYER_CONNECT,
+        player_connect = PlayerConnectClientEvent {
+            id = id,
+        },
+    }
+}
+
+create_player_disconnect_event :: proc(id: i32) -> ClientEvent {
+    return ClientEvent {
+        type = .PLAYER_DISCONNECT,
+        player_connect = PlayerConnectClientEvent {
+            id = id,
+        },
+    }
+}
+
 NetConnection :: struct {
     is_connected: bool,
     sock: net.TCP_Socket,
@@ -91,6 +109,16 @@ connect_net_con :: proc(net_con: ^NetConnection, endpoint: net.Endpoint) {
     net_con.rx_thread = thread.create_and_start_with_poly_data2(net_con, chan.as_send(ch), net_con_recv_task)
 }
 
+send_event :: proc(net_con: ^NetConnection, event: ^ServerEvent) {
+    buf := slice.bytes_from_ptr(event, size_of(ServerEvent))
+    _, err := net.send_tcp(net_con.sock, buf)
+    if err == .Connection_Closed {
+        close_net_con(net_con)
+    } else if err != nil {
+        fmt.printfln("net.send_tcp error %v", err)
+    }
+}
+
 close_net_con :: proc(net_con: ^NetConnection) {
     net_con.is_connected = false
     err := net.shutdown(net_con.sock, .Both)
@@ -123,13 +151,7 @@ send_net_con_update :: proc(game: ^Game) {
         },
     }
 
-    buffer := slice.from_ptr(transmute(^u8)(&event), size_of(ServerEvent))
-    _, err := net.send_tcp(game.net_con.sock, buffer)
-    if err == .Connection_Closed {
-        close_net_con(&game.net_con)
-    } else if err != nil {
-        fmt.printfln("net.send_tcp error %v", err)
-    }
+    send_event(&game.net_con, &event)
 }
 
 recv_net_con_update :: proc(net_con: ^NetConnection) {
@@ -154,20 +176,25 @@ recv_net_con_update :: proc(net_con: ^NetConnection) {
 }
 
 net_con_recv_task :: proc(net_con: ^NetConnection, tx: chan.Chan(ClientEvent, .Send)) {
-    buffer: [256]u8
+    buffer: [512]u8
+    offset := 0
 
     for {
-        bytes_recv, err := net.recv_tcp(net_con.sock, buffer[:])
-        if bytes_recv == 0 do break
+        bytes_recv, err := net.recv_tcp(net_con.sock, buffer[offset:])
         if err != nil {
             fmt.printfln("net.recv_tcp error %v", err)
             continue
         }
+        if bytes_recv == 0 do break // connection closed
+        offset += bytes_recv
 
-        received := buffer[:bytes_recv]
+        if offset >= size_of(ClientEvent) {
+            event := cast(^ClientEvent)raw_data(buffer[:size_of(ClientEvent)])
+            chan.send(tx, event^)
 
-        event := transmute(^ClientEvent)(raw_data(received))
-        chan.send(tx, event^)
+            copy(buffer[:], buffer[size_of(ClientEvent):offset])
+            offset -= size_of(ClientEvent)
+        }
     }
 }
 
