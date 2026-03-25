@@ -64,8 +64,10 @@ NET_CON_DELTA_TIME :: 1.0 / NET_CON_UPS
 create_net_con :: proc() -> NetConnection {
     return NetConnection {
         is_connected = false,
+        sock = 0,
         last_update = time.tick_now(),
         net_players = make(map[i32]Player),
+        rx_thread = nil,
     }
 }
 
@@ -81,14 +83,15 @@ connect_net_con :: proc(net_con: ^NetConnection, endpoint: net.Endpoint) {
 
     ch, _ := chan.create(chan.Chan(ClientEvent), context.allocator)
     net_con.rx = ch
-    thread.create_and_start_with_poly_data2(net_con, chan.as_send(ch), net_con_recv_task)
+    net_con.rx_thread = thread.create_and_start_with_poly_data2(net_con, chan.as_send(ch), net_con_recv_task)
 }
 
 close_net_con :: proc(net_con: ^NetConnection) {
-    net.close(net_con.sock)
     net_con.is_connected = false
-    clear(&net_con.net_players)
+    net.shutdown(net_con.sock, .Both)
+    net.close(net_con.sock)
     thread.destroy(net_con.rx_thread)
+    clear(&net_con.net_players)
     chan.destroy(net_con.rx)
 }
 
@@ -140,10 +143,14 @@ net_con_recv_task :: proc(net_con: ^NetConnection, tx: chan.Chan(ClientEvent, .S
     buffer: [256]u8
 
     for {
-        bytes_recv, _ := net.recv_tcp(net_con.sock, buffer[:])
-        received := buffer[:bytes_recv]
-
+        bytes_recv, err := net.recv_tcp(net_con.sock, buffer[:])
         if bytes_recv == 0 do break
+        if err != nil {
+            fmt.printfln("net.rect_tcp error %v", err)
+            continue
+        }
+
+        received := buffer[:bytes_recv]
 
         event := transmute(^ClientEvent)(raw_data(received))
         chan.send(tx, event^)

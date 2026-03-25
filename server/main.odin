@@ -34,13 +34,14 @@ handle_con :: proc(client: net.TCP_Socket, source: net.Endpoint) {
     defer {
         net.close(client)
         sync.lock(&clients_mutex)
-        delete_key(&clients, client)
+        _, id :=  delete_key(&clients, client)
         sync.unlock(&clients_mutex)
 
+        fmt.printfln("%v disconnected", id)
         broadcast_event_to_all_except(client, game.ClientEvent {
             type = .PLAYER_DISCONNECT,
             player_connect = game.PlayerConnectClientEvent {
-                id = next_id,
+                id = id,
             },
         })
         
@@ -106,6 +107,7 @@ main :: proc() {
         clients[client] = next_id
 
         sync.unlock(&clients_mutex)
+        fmt.printfln("%v connected", next_id)
         broadcast_event_to_all_except(client, game.ClientEvent {
             type = .PLAYER_CONNECT,
             player_connect = game.PlayerConnectClientEvent {
