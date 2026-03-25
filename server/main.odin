@@ -78,11 +78,7 @@ handle_con :: proc(client: net.TCP_Socket, source: net.Endpoint) {
 main :: proc() {
     fmt.println("Hello from server")
 
-    local_addr, _ := net.parse_ip4_address("0.0.0.0");
-    endpoint := net.Endpoint {
-        address = local_addr,
-        port = 9868,
-    }
+    endpoint, _ := net.parse_endpoint("0.0.0.0:9868");
     sock, _ := net.listen_tcp(endpoint)
     defer net.close(sock)
 

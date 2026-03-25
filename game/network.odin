@@ -77,7 +77,12 @@ delete_net_con :: proc(net_con: ^NetConnection) {
 }
 
 connect_net_con :: proc(net_con: ^NetConnection, endpoint: net.Endpoint) {
-    sock, _ := net.dial_tcp(endpoint)
+    sock, err := net.dial_tcp(endpoint)
+    if err != nil {
+        fmt.printfln("net.dial_tcp error %v", err)
+        return
+    }
+
     net_con.sock = sock
     net_con.is_connected = true
 
@@ -88,7 +93,10 @@ connect_net_con :: proc(net_con: ^NetConnection, endpoint: net.Endpoint) {
 
 close_net_con :: proc(net_con: ^NetConnection) {
     net_con.is_connected = false
-    net.shutdown(net_con.sock, .Both)
+    err := net.shutdown(net_con.sock, .Both)
+    if err != nil && err != .Invalid_Argument {
+        fmt.printfln("net.shutdown error %v", err)
+    }
     net.close(net_con.sock)
     thread.destroy(net_con.rx_thread)
     clear(&net_con.net_players)
@@ -116,7 +124,12 @@ send_net_con_update :: proc(game: ^Game) {
     }
 
     buffer := slice.from_ptr(transmute(^u8)(&event), size_of(ServerEvent))
-    net.send_tcp(game.net_con.sock, buffer)
+    _, err := net.send_tcp(game.net_con.sock, buffer)
+    if err == .Connection_Closed {
+        close_net_con(&game.net_con)
+    } else if err != nil {
+        fmt.printfln("net.send_tcp error %v", err)
+    }
 }
 
 recv_net_con_update :: proc(net_con: ^NetConnection) {
@@ -126,7 +139,8 @@ recv_net_con_update :: proc(net_con: ^NetConnection) {
 
         switch event.type {
         case .PLAYER_UPDATE:
-            player := &net_con.net_players[event.player_update.id]
+            player, ok := &net_con.net_players[event.player_update.id]
+            if !ok do continue
             player.position = event.player_update.position
             player.rotation = event.player_update.rotation
         case .PLAYER_CONNECT:
@@ -146,7 +160,7 @@ net_con_recv_task :: proc(net_con: ^NetConnection, tx: chan.Chan(ClientEvent, .S
         bytes_recv, err := net.recv_tcp(net_con.sock, buffer[:])
         if bytes_recv == 0 do break
         if err != nil {
-            fmt.printfln("net.rect_tcp error %v", err)
+            fmt.printfln("net.recv_tcp error %v", err)
             continue
         }
 

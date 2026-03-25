@@ -17,7 +17,7 @@ Game :: struct {
 create_game :: proc() -> Game {
     rl.SetConfigFlags({ .WINDOW_RESIZABLE, .VSYNC_HINT, .WINDOW_HIGHDPI })
     rl.SetTraceLogLevel(.WARNING)
-    rl.InitWindow(1600, 900, "Overtake 2")
+    rl.InitWindow(1000, 600, "Overtake 2")
     rlmu.init()
 
     return Game{
